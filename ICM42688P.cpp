@@ -119,13 +119,13 @@ uint8_t ICM42688P::GetRawData(int16_t AccelData[3], int16_t GyroData[3]){
 
 	Read(ICM42688P::BANK0::ACCEL_DATA_X1, RawData, 12);
 
-	AccelData[0]  = (int16_t)(RawData[0] | RawData[1] << 8) - AccelOffset[0];
-	AccelData[1]  = (int16_t)(RawData[2] | RawData[3] << 8) - AccelOffset[1];
-	AccelData[2]  = (int16_t)(RawData[4] | RawData[5] << 8) - AccelOffset[2];
+	AccelData[0]  = (int16_t)(RawData[1] | RawData[0] << 8) - AccelOffset[0];
+	AccelData[1]  = (int16_t)(RawData[3] | RawData[2] << 8) - AccelOffset[1];
+	AccelData[2]  = (int16_t)(RawData[5] | RawData[4] << 8) - AccelOffset[2];
 
-	GyroData[0]  = (int16_t)(RawData[6]  | RawData[7]  << 8) - GyroOffset[0];
-	GyroData[1]  = (int16_t)(RawData[8]  | RawData[9]  << 8) - GyroOffset[1];
-	GyroData[2]  = (int16_t)(RawData[10] | RawData[11] << 8) - GyroOffset[2];
+	GyroData[0]  = (int16_t)(RawData[7]  | RawData[6]  << 8) - GyroOffset[0];
+	GyroData[1]  = (int16_t)(RawData[9]  | RawData[8]  << 8) - GyroOffset[1];
+	GyroData[2]  = (int16_t)(RawData[11] | RawData[10] << 8) - GyroOffset[2];
 
 	return 0;
 }
