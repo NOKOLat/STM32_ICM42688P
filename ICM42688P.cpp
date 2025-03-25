@@ -303,7 +303,7 @@ uint8_t ICM42688P::Calibration(uint16_t Count){
 		AccelNormTmp += pow(AccelOffset[i] * G * AccelScaleValue / 32768.0, 2);
 	}
 
-	AccelNorm = AccelNormTmp / pow(G,2);
+	AccelNorm = sqrt(AccelNormTmp) / G;
 
 	//重量加速度をオフセットに含める
 	AccelOffset[2] -= 32768 / AccelScaleValue;
