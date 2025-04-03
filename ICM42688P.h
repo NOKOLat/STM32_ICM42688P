@@ -26,7 +26,6 @@ class ICM42688P{
 			GYRO_CONFIG1 = 0x51,
 			GYRO_ACCEL_CONFIG0 = 0x52,
 			WHO_AM_I = 0x75,
-			REG_BANK_SEL = 0x76
 		};
 
 		enum class GYRO_MODE: uint8_t{
@@ -128,18 +127,26 @@ class ICM42688P{
 		uint8_t AccelConfig(ICM42688P::ACCEL_Mode, ICM42688P::ACCEL_SCALE, ICM42688P::ACCEL_ODR, ICM42688P::ACCEL_DLPF);
 		uint8_t GyroConfig(ICM42688P::GYRO_MODE Mode, ICM42688P::GYRO_SCALE Scale, ICM42688P::GYRO_ODR ODR, ICM42688P::GYRO_DLPF DLPF);
 		uint8_t Calibration(uint16_t Count);
-		void SelectBank(uint8_t Bank);
 
 	private:
 
-		virtual void Write(ICM42688P::BANK0, uint8_t* TxBuffer, uint8_t Len){}
-		virtual void Read(ICM42688P::BANK0, uint8_t* RxBuffer, uint8_t Len){}
+		virtual void Write(ICM42688P::BANK0, uint8_t* TxBuffer, uint8_t Len) = 0;
+		virtual void Read(ICM42688P::BANK0, uint8_t* RxBuffer, uint8_t Len) = 0;
 
-		uint8_t RawData[12] = {};
+		//OffSet
 		int16_t AccelOffset[3] = {};
 		int16_t GyroOffset[3] = {};
+
+		//Config
 		float AccelScaleValue = 0.0;
 		float GyroScaleValue  = 0.0;
+		uint8_t AccelModeTmp = 0;
+		uint8_t GyroModeTmp = 0;
+		uint8_t AccelDLPFTmp = 0;
+		uint8_t GyroDLPFTmp = 0;
+		float AccelNorm = 0.0;
+
+		//Calc
 		float G = 9.80665;
 };
 
