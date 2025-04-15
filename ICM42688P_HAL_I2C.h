@@ -13,18 +13,17 @@
 
 class ICM42688P_HAL_I2C: public ICM42688P {
 
+    public:
 
-	public:
+        ICM42688P_HAL_I2C(I2C_HandleTypeDef* i2c_pin);
 
-		ICM42688P_HAL_I2C(I2C_HandleTypeDef* I2cPin);
+    private:
 
-	private:
+        void Write(ICM42688P::BANK0 reg_addr, uint8_t* tx_buffer, uint8_t len) override;
+        void Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint8_t len) override;
 
-		void Write(ICM42688P::BANK0, uint8_t* TxBuffer, uint8_t Len);
-		void Read(ICM42688P::BANK0, uint8_t* RxBuffer, uint8_t Len);
-
-		I2C_HandleTypeDef* I2cPin;
-		const uint8_t I2C_ADDR = 0b1101000 << 1;
+        I2C_HandleTypeDef* i2c_pin;
+        const uint8_t i2c_addr = 0b1101000 << 1;
 };
 
 #endif /* SRC_ICM42688P_HAL_I2C_H_ */
