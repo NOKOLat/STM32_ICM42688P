@@ -5,7 +5,7 @@
  *      Author: Sezakiaoi
  */
 
-#include <ICM42688P_HAL_SPI.h>
+#include "ICM42688P_HAL_SPI.h"
 
 ICM42688P_HAL_SPI::ICM42688P_HAL_SPI(SPI_HandleTypeDef* spi_pin, GPIO_TypeDef* cs_pin_type, uint16_t cs_pin_num){
 
