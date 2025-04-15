@@ -243,6 +243,13 @@ uint8_t ICM42688P::Calibration(uint16_t count){
     int32_t accel_tmp[3] = {};
     int32_t gyro_tmp[3] = {};
 
+	//空取得を行う（センサーの待機用）
+	int16_t dummy[3] = {};
+	for(int16_t i = 0; i < 100; i++){
+
+		ICM42688P::GetRawData(dummy, dummy);
+	}
+
     for(int16_t i = 0; i < count; i++){
 
         if(ICM42688P::GetRawData(accel, gyro) == 1){
