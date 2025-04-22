@@ -16,20 +16,19 @@
  */
 uint8_t ICM42688P::Connection(){
 
-	uint8_t ProductId = 0x00;
-	uint8_t Error = 0;
+    uint8_t product_id = 0x00;
+    uint8_t error = 0;
 
-	while(ProductId != 0x47){
+    while(product_id != 0x47){
 
-		Read(ICM42688P::BANK0::WHO_AM_I, &ProductId, 1);
-		Error ++;
+        Read(ICM42688P::BANK0::WHO_AM_I, &product_id, 1);
+        error ++;
 
-		if(Error > 100){
-
-			return 1;//接続失敗
-		}
-	}
-	return 0;//接続成功
+        if(error > 100){
+            return 1;//接続失敗
+        }
+    }
+    return 0;//接続成功
 }
 
 /* @brief 加速度センサーの設定
@@ -42,71 +41,60 @@ uint8_t ICM42688P::Connection(){
  *
  * @return uint8_t 0: 設定完了 1: PWR_MGMT0 設定失敗 2: ACCEL_CONFIG0　設定失敗 3: GYRO_ACCEL_CONFIG0 設定失敗
  */
-uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode Mode, ICM42688P::ACCEL_SCALE Scale, ICM42688P::ACCEL_ODR ODR, ICM42688P::ACCEL_DLPF DLPF){
+uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCEL_SCALE accel_scale, ICM42688P::ACCEL_ODR accel_odr, ICM42688P::ACCEL_DLPF accel_dlpf){
 
-	//現在のモードを保存
-	AccelModeTmp = (uint8_t)Mode;
+    accel_mode_tmp = (uint8_t)accel_mode;
 
-	//Mode設定を作成
-	uint8_t Command = (GyroModeTmp << 2) | AccelModeTmp;
+    uint8_t command = (gyro_mode_tmp << 2) | accel_mode_tmp;
 
-	//値を書き込み
-	uint8_t Error = 0;
-	uint8_t NowMode = 0;
-	while(Command != NowMode){
+    uint8_t error = 0;
+    uint8_t now_mode = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::PWR_MGMT0, &Command, 1);
-		Read(ICM42688P::BANK0::PWR_MGMT0, &NowMode, 1);
+        Write(ICM42688P::BANK0::PWR_MGMT0, &command, 1);
+        Read(ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 1;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 1;
+        }
+    }
 
-	//ScaleとODRの設定を作成
-	Command = (uint8_t)Scale << 5 | (uint8_t)ODR;
+    command = (uint8_t)accel_scale << 5 | (uint8_t)accel_odr;
 
-	//値を書き込み
-	Error = 0;
-	NowMode = 0;
-	while(Command != NowMode){
+    error = 0;
+    now_mode = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::ACCEL_CONFIG0, &Command, 1);
-		Read(ICM42688P::BANK0::ACCEL_CONFIG0, &NowMode, 1);
+        Write(ICM42688P::BANK0::ACCEL_CONFIG0, &command, 1);
+        Read(ICM42688P::BANK0::ACCEL_CONFIG0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 2;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 2;
+        }
+    }
 
-	//DLFPの値を保存
-	AccelDLPFTmp = (uint8_t)DLPF;
+    accel_dlpf_tmp = (uint8_t)accel_dlpf;
 
-	//DLPFの設定を作成
-	Command = GyroDLPFTmp | (AccelDLPFTmp << 4);
+    command = gyro_dlpf_tmp | (accel_dlpf_tmp << 4);
 
-	Error = 0;
-	NowMode = 0;
-	while(Command != NowMode){
+    error = 0;
+    now_mode = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &Command, 1);
-		Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &NowMode, 1);
+        Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
+        Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 3;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 3;
+        }
+    }
 
-	//Scaleの値を保存
-	AccelScaleValue = 16.0 / pow(2,(uint8_t)Scale);
+    accel_scale_value = 16.0 / pow(2,(uint8_t)accel_scale);
 
-	return 0;
+    return 0;
 }
 
 /* @brief ジャイロセンサーの設定
@@ -119,71 +107,60 @@ uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode Mode, ICM42688P::ACCEL_SCAL
  *
  *  @return uint8_t 0: 設定完了 1: PWR_MGMT0 設定失敗 2: Gyro_CONFIG0　設定失敗 3: GYRO_ACCEL_CONFIG0 設定失敗
  */
-uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE Mode, ICM42688P::GYRO_SCALE Scale, ICM42688P::GYRO_ODR ODR, ICM42688P::GYRO_DLPF DLPF){
+uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SCALE gyro_scale, ICM42688P::GYRO_ODR gyro_odr, ICM42688P::GYRO_DLPF gyro_dlpf){
 
-	//現在のモードを保存
-	GyroModeTmp = (uint8_t)Mode;
+    gyro_mode_tmp = (uint8_t)gyro_mode;
 
-	//Mode設定を作成
-	uint8_t Command = (GyroModeTmp << 2) | AccelModeTmp;
+    uint8_t command = (gyro_mode_tmp << 2) | accel_mode_tmp;
 
-	//値を書き込み
-	uint8_t Error = 0;
-	uint8_t NowMode = 0;
-	while(Command != NowMode){
+    uint8_t error = 0;
+    uint8_t now_mode = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::PWR_MGMT0, &Command, 1);
-		Read(ICM42688P::BANK0::PWR_MGMT0, &NowMode, 1);
+        Write(ICM42688P::BANK0::PWR_MGMT0, &command, 1);
+        Read(ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 1;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 1;
+        }
+    }
 
-	//ScaleとODRの設定を書き込み
-	Command = (uint8_t)Scale << 5 | (uint8_t)ODR;
+    command = (uint8_t)gyro_scale << 5 | (uint8_t)gyro_odr;
 
-	//値を書き込み
-	NowMode = 0;
-	Error = 0;
-	while(Command != NowMode){
+    now_mode = 0;
+    error = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::GYRO_CONFIG0, &Command, 1);
-		Read(ICM42688P::BANK0::GYRO_CONFIG0, &NowMode, 1);
+        Write(ICM42688P::BANK0::GYRO_CONFIG0, &command, 1);
+        Read(ICM42688P::BANK0::GYRO_CONFIG0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 2;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 2;
+        }
+    }
 
-	//DLFPの値を保存
-	GyroDLPFTmp = (uint8_t)DLPF;
+    gyro_dlpf_tmp = (uint8_t)gyro_dlpf;
 
-	//DLPFの設定を作成
-	Command = GyroDLPFTmp | (AccelDLPFTmp << 4);
+    command = gyro_dlpf_tmp | (accel_dlpf_tmp << 4);
 
-	Error = 0;
-	NowMode = 0;
-	while(Command != NowMode){
+    error = 0;
+    now_mode = 0;
+    while(command != now_mode){
 
-		Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &Command, 1);
-		Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &NowMode, 1);
+        Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
+        Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
 
-		//エラー判定
-		Error ++;
-		if(Error > 100){
-			return 3;
-		}
-	}
+        error ++;
+        if(error > 100){
+            return 3;
+        }
+    }
 
-	//Scaleの値を保存
-	GyroScaleValue = 2000.0 / pow(2, (uint8_t)Scale);
+    gyro_scale_value = 2000.0 / pow(2, (uint8_t)gyro_scale);
 
-	return 0;
+    return 0;
 }
 
 /* @brief 加速度センサーとジャイロセンサーからデータを取得
@@ -198,32 +175,29 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE Mode, ICM42688P::GYRO_SCALE S
  * @return uint8_t 成功: 0、失敗: 1
 
  */
-uint8_t ICM42688P::GetRawData(int16_t AccelData[3], int16_t GyroData[3]){
+uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
 
-	//値を取得
-	uint8_t RawData[12] = {};
-	uint8_t Error = 0;
-	while(RawData[1] == 0 && RawData[3] == 0 && RawData[5] == 0){
+    uint8_t raw_data[12] = {};
+    uint8_t error = 0;
+    while(raw_data[1] == 0 && raw_data[3] == 0 && raw_data[5] == 0){
 
-		Read(ICM42688P::BANK0::ACCEL_DATA_X1, RawData, 12);
+        Read(ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12);
 
-		Error ++;
-		if(Error > 200){
+        error ++;
+        if(error > 200){
+            return 1;
+        }
+    }
 
-			return 1;
-		}
-	}
+    accel_buffer[0]  = (int16_t)(raw_data[1] | (raw_data[0] << 8)) - accel_offset[0];
+    accel_buffer[1]  = (int16_t)(raw_data[3] | (raw_data[2] << 8)) - accel_offset[1];
+    accel_buffer[2]  = (int16_t)(raw_data[5] | (raw_data[4] << 8)) - accel_offset[2];
 
-	//値を処理
-	AccelData[0]  = (int16_t)(RawData[1] | (RawData[0] << 8)) - AccelOffset[0];
-	AccelData[1]  = (int16_t)(RawData[3] | (RawData[2] << 8)) - AccelOffset[1];
-	AccelData[2]  = (int16_t)(RawData[5] | (RawData[4] << 8)) - AccelOffset[2];
+    gyro_buffer[0]  = (int16_t)(raw_data[7]  | raw_data[6]  << 8) - gyro_offset[0];
+    gyro_buffer[1]  = (int16_t)(raw_data[9]  | raw_data[8]  << 8) - gyro_offset[1];
+    gyro_buffer[2]  = (int16_t)(raw_data[11] | raw_data[10] << 8) - gyro_offset[2];
 
-	GyroData[0]  = (int16_t)(RawData[7]  | RawData[6]  << 8) - GyroOffset[0];
-	GyroData[1]  = (int16_t)(RawData[9]  | RawData[8]  << 8) - GyroOffset[1];
-	GyroData[2]  = (int16_t)(RawData[11] | RawData[10] << 8) - GyroOffset[2];
-
-	return 0;
+    return 0;
 }
 
 /* @brief 加速度センサーとジャイロセンサーからデータを取得
@@ -236,25 +210,20 @@ uint8_t ICM42688P::GetRawData(int16_t AccelData[3], int16_t GyroData[3]){
  *
  * @return uint8_t 成功: 0、失敗: 1
  */
-uint8_t ICM42688P::GetData(float AccelData[3], float GyroData[3]){
+uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
 
-	int16_t AccelBuffer[3] = {};
-	int16_t GyroBuffer[3] = {};
+    int16_t accel_buffer[3] = {};
+    int16_t gyro_buffer[3] = {};
 
-	//データの取得
-	if(GetRawData(AccelBuffer, GyroBuffer) == 1){
+    if(GetRawData(accel_buffer, gyro_buffer) == 1){
+        return 1;
+    }
 
-		//取得失敗
-		return 1;
-	}
-
-	//単位を変換
-	for(uint8_t i=0; i<3; i++){
-
-		AccelData[i] = AccelBuffer[i] * G * AccelScaleValue / 32768.0;
-		GyroData[i]  = GyroBuffer[i] * GyroScaleValue / 32768.0;
-	}
-	return 0;
+    for(uint8_t i = 0; i < 3; i++){
+        accel_data[i] = accel_buffer[i] * g * accel_scale_value / 32768.0;
+        gyro_data[i]  = gyro_buffer[i] * gyro_scale_value / 32768.0;
+    }
+    return 0;
 }
 
 /* @brief キャリブレーション
@@ -266,38 +235,41 @@ uint8_t ICM42688P::GetData(float AccelData[3], float GyroData[3]){
  *
  * @return uint8_t 成功: 0、失敗: 1
  */
-uint8_t ICM42688P::Calibration(uint16_t Count){
+uint8_t ICM42688P::Calibration(uint16_t count){
 
-	int16_t Accel[3] = {};
-	int16_t Gyro[3] = {};
+    int16_t accel[3] = {};
+    int16_t gyro[3] = {};
 
-	int32_t AccelTmp[3] = {};
-	int32_t GyroTmp[3] = {};
+    int32_t accel_tmp[3] = {};
+    int32_t gyro_tmp[3] = {};
 
-	for(int16_t i=0; i < Count; i++){
+	//空取得を行う（センサーの待機用）
+	int16_t dummy[3] = {};
+	for(int16_t i = 0; i < 100; i++){
 
-		if(ICM42688P::GetRawData(Accel, Gyro) == 1){
-
-			return 1;
-		}
-
-		for(uint8_t j=0; j<3; j++){
-
-			AccelTmp[j] += Accel[j];
-			GyroTmp[j] += Gyro[j];
-		}
-
-		for(uint32_t i=0; i<25000; i++);
+		ICM42688P::GetRawData(dummy, dummy);
 	}
 
-	for(uint8_t k=0; k<3; k++){
+    for(int16_t i = 0; i < count; i++){
 
-		AccelOffset[k] = AccelTmp[k] / Count;
-		GyroOffset[k] = GyroTmp[k] / Count;
-	}
+        if(ICM42688P::GetRawData(accel, gyro) == 1){
+            return 1;
+        }
 
-	//重量加速度をオフセットに含める
-	AccelOffset[2] -= 32768 / AccelScaleValue;
+        for(uint8_t j = 0; j < 3; j++){
+            accel_tmp[j] += accel[j];
+            gyro_tmp[j] += gyro[j];
+        }
 
-	return 0;
+        for(uint32_t k = 0; k < 25000; k++);
+    }
+
+    for(uint8_t k = 0; k < 3; k++){
+        accel_offset[k] = accel_tmp[k] / count;
+        gyro_offset[k] = gyro_tmp[k] / count;
+    }
+
+    accel_offset[2] -= 32768 / accel_scale_value;
+
+    return 0;
 }
