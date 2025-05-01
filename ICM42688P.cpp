@@ -5,6 +5,7 @@
  *      Author: Sezakiaoi
  */
 
+//#include "stdio.h"
 #include "ICM42688P.h"
 
 /* @brief センサーとの接続を確認
@@ -196,6 +197,10 @@ uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
     gyro_buffer[0]  = (int16_t)(raw_data[7]  | raw_data[6]  << 8) - gyro_offset[0];
     gyro_buffer[1]  = (int16_t)(raw_data[9]  | raw_data[8]  << 8) - gyro_offset[1];
     gyro_buffer[2]  = (int16_t)(raw_data[11] | raw_data[10] << 8) - gyro_offset[2];
+	
+   AccelData[0] *= AccelGain;
+   AccelData[1] *= AccelGain;
+   AccelData[2] *= AccelGain;
 
     return 0;
 }
@@ -235,41 +240,36 @@ uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
  *
  * @return uint8_t 成功: 0、失敗: 1
  */
-uint8_t ICM42688P::Calibration(uint16_t count){
+uint8_t ICM42688P::Calibration(uint16_t Count){
 
-    int16_t accel[3] = {};
-    int16_t gyro[3] = {};
+	int16_t Accel[3] = {};
+	int16_t Gyro[3] = {};
 
-    int32_t accel_tmp[3] = {};
-    int32_t gyro_tmp[3] = {};
-
-	//空取得を行う（センサーの待機用）
 	int16_t dummy[3] = {};
-	for(int16_t i = 0; i < 100; i++){
+
+	for(uint16_t i=0; i<1000; i++){
 
 		ICM42688P::GetRawData(dummy, dummy);
 	}
 
-    for(int16_t i = 0; i < count; i++){
+	for(int16_t i=0; i < Count; i++){
 
-        if(ICM42688P::GetRawData(accel, gyro) == 1){
-            return 1;
-        }
+		if(ICM42688P::GetRawData(Accel, Gyro) == 1){
+			return 1;
+		}
 
-        for(uint8_t j = 0; j < 3; j++){
-            accel_tmp[j] += accel[j];
-            gyro_tmp[j] += gyro[j];
-        }
+		float norm = 1/sqrt( pow( (Accel[0]  / 32768.0)* AccelScaleValue, 2)
+				   + pow( (Accel[1]  / 32768.0)* AccelScaleValue, 2)
+				   + pow( (Accel[2]  / 32768.0)* AccelScaleValue, 2) );
+		AccelGain += (norm - AccelGain)/ (i+1);
 
-        for(uint32_t k = 0; k < 25000; k++);
-    }
-
-    for(uint8_t k = 0; k < 3; k++){
-        accel_offset[k] = accel_tmp[k] / count;
-        gyro_offset[k] = gyro_tmp[k] / count;
-    }
-
-    accel_offset[2] -= 32768 / accel_scale_value;
-
-    return 0;
+		Accel[2] -= 32768 / AccelScaleValue;
+		for(uint8_t j=0; j<3; j++){
+			AccelOffset[j] += (Accel[j] - AccelOffset[j])/ (i+1);
+			GyroOffset[j] += (Gyro[j] - GyroOffset[j])/ (i+1);
+		}
+		
+		//printf("%d %d %d\n",Accel[0],Accel[1],Accel[2]);
+	}
+	return 0;
 }
