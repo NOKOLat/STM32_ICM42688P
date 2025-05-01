@@ -243,28 +243,32 @@ uint8_t ICM42688P::Calibration(uint16_t count){
     int32_t accel_tmp[3] = {};
     int32_t gyro_tmp[3] = {};
 
-	//空取得を行う（センサーの待機用）
-	int16_t dummy[3] = {};
-	for(int16_t i = 0; i < 100; i++){
-
-		ICM42688P::GetRawData(dummy, dummy);
-	}
-
     for(int16_t i = 0; i < count; i++){
 
         if(ICM42688P::GetRawData(accel, gyro) == 1){
+
             return 1;
         }
 
-        for(uint8_t j = 0; j < 3; j++){
-            accel_tmp[j] += accel[j];
-            gyro_tmp[j] += gyro[j];
-        }
+        if(accel[0] < 255){
 
-        for(uint32_t k = 0; k < 25000; k++);
+
+		for(uint8_t j = 0; j < 3; j++){
+			
+			accel_tmp[j] += accel[j];
+			gyro_tmp[j] += gyro[j];
+		}
+	
+		for(uint32_t k = 0; k < 25000; k++);
+        }
+        else{
+
+        	i--;
+        }
     }
 
     for(uint8_t k = 0; k < 3; k++){
+	    
         accel_offset[k] = accel_tmp[k] / count;
         gyro_offset[k] = gyro_tmp[k] / count;
     }
@@ -273,3 +277,4 @@ uint8_t ICM42688P::Calibration(uint16_t count){
 
     return 0;
 }
+
