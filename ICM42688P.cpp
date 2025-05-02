@@ -241,6 +241,7 @@ uint8_t ICM42688P::Calibration(uint16_t Count){
 	int16_t Accel[3] = {};
 	int16_t Gyro[3] = {};
 
+
 	int16_t dummy[3] = {};
 
 	for(uint16_t i=0; i<1000; i++){
