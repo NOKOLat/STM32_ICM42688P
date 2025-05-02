@@ -135,7 +135,7 @@ class ICM42688P{
         // Offset
         int16_t accel_offset[3] = {};
         int16_t gyro_offset[3] = {};
-	float AccelGain = 1;
+	float accel_gain = 0.0;
 
         // Config
         float accel_scale_value = 0.0;
