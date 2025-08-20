@@ -5,19 +5,29 @@
  *      Author: Sezakiaoi
  */
 
+#ifdef USE_HAL_DRIVER
+
+#include "stm32f7xx_hal.h"
+#include "stm32f7xx_hal_conf.h"
 
 #ifdef HAL_I2C_MODULE_ENABLED
+
 #include "ICM42688P_HAL_I2C.h"
 
 ICM42688P_HAL_I2C::ICM42688P_HAL_I2C(I2C_HandleTypeDef* i2c_pin){
+
     this->i2c_pin = i2c_pin;
 }
 
 void ICM42688P_HAL_I2C::Write(ICM42688P::BANK0 reg_addr, uint8_t* tx_buffer, uint8_t len){
+
     HAL_I2C_Mem_Write(i2c_pin, i2c_addr, uint8_t(reg_addr), 1, tx_buffer, len, 1);
 }
 
 void ICM42688P_HAL_I2C::Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint8_t len){
+
     HAL_I2C_Mem_Read(i2c_pin, i2c_addr, uint8_t(reg_addr), 1, rx_buffer, len, 1);
 }
-#endif
+
+#endif /* HAL_I2C_MODULE_ENABLED */
+#endif /* USE_HAL_DRIVER */

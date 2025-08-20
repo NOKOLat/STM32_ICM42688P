@@ -10,6 +10,7 @@
  
 
 #ifdef HAL_SPI_MODULE_ENABLED
+
 #include "ICM42688P.h"
 #include "spi.h"
 #include "gpio.h"
