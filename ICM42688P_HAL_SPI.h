@@ -8,9 +8,11 @@
  #ifndef INC_ICM42688P_HAL_SPI_H_
  #define INC_ICM42688P_HAL_SPI_H_
  
- #include "ICM42688P.h"
- #include "spi.h"
- #include "gpio.h"
+
+#ifdef HAL_SPI_MODULE_ENABLED
+#include "ICM42688P.h"
+#include "spi.h"
+#include "gpio.h"
  
  class ICM42688P_HAL_SPI: public ICM42688P{
  
@@ -29,3 +31,4 @@
  };
  
  #endif /* INC_ICM42688P_HAL_SPI_H_ */
+#endif /* HAL_SPI_MODULE_ENABLED */

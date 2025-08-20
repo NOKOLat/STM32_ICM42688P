@@ -5,6 +5,8 @@
  *      Author: Sezakiaoi
  */
 
+
+#ifdef HAL_SPI_MODULE_ENABLED
 #include "ICM42688P_HAL_SPI.h"
 
 ICM42688P_HAL_SPI::ICM42688P_HAL_SPI(SPI_HandleTypeDef* spi_pin, GPIO_TypeDef* cs_pin_type, uint16_t cs_pin_num){
@@ -53,3 +55,4 @@ void ICM42688P_HAL_SPI::Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint
         rx_buffer[i] = rx_tmp[1];
     }
 }
+#endif

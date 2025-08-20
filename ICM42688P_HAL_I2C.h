@@ -8,6 +8,8 @@
 #ifndef SRC_ICM42688P_HAL_I2C_H_
 #define SRC_ICM42688P_HAL_I2C_H_
 
+
+#ifdef HAL_I2C_MODULE_ENABLED
 #include "ICM42688P.h"
 #include "i2c.h"
 
@@ -27,3 +29,4 @@ class ICM42688P_HAL_I2C: public ICM42688P {
 };
 
 #endif /* SRC_ICM42688P_HAL_I2C_H_ */
+#endif /* HAL_I2C_MODULE_ENABLED */

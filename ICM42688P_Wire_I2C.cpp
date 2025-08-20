@@ -1,3 +1,4 @@
+#ifndef USE_HAL_DRIVER
 #include "ICM42688P_WIRE_I2C.h"
 
 ICM42688P_WIRE_I2C::ICM42688P_WIRE_I2C(uint8_t SDA_pin, uint8_t SCL_pin) {
@@ -48,3 +49,4 @@ void ICM42688P_WIRE_I2C::Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uin
     rx_buffer[i] = Wire.read();
   }
 }
+#endif

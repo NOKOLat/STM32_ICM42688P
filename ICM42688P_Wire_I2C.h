@@ -1,6 +1,8 @@
 #ifndef INC_ICM42688P_WIRE_I2C_H_
 #define INC_ICM42688P_WIRE_I2C_H_
 
+
+#ifndef USE_HAL_DRIVER
 #include "ICM42688P.h"
 #include <Wire.h>
 
@@ -21,19 +23,5 @@ class ICM42688P_WIRE_I2C: public ICM42688P{
 
     	uint8_t single_byte = 1;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
+#endif /* USE_HAL_DRIVER */
+#endif /* INC_ICM42688P_WIRE_I2C_H_ */
