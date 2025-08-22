@@ -197,7 +197,7 @@ uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
     gyro_buffer[0]  = (int16_t)(raw_data[7]  | raw_data[6]  << 8) ;
     gyro_buffer[1]  = (int16_t)(raw_data[9]  | raw_data[8]  << 8) ;
     gyro_buffer[2]  = (int16_t)(raw_data[11] | raw_data[10] << 8) ;
-	
+
     return 0;
 }
 
@@ -238,42 +238,75 @@ uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
  */
 uint8_t ICM42688P::Calibration(uint16_t Count){
 
-	int16_t Accel[3] = {};
-	int16_t Gyro[3] = {};
+    int16_t Accel[3] = {};
+    int16_t Gyro[3] = {};
+
+    uint8_t error_count = 0;
+
+    const float VIBRATION_THRESHOLD = 0.1f; // 振動検知の閾値
+    
+    // 初期化待ち
+    for(volatile uint32_t k=0; k < 1000000; k++){
+        ;
+    }
+    
+    int16_t i = 0;
+    while(i < Count){
+        if(ICM42688P::GetRawData(Accel, Gyro) == 1){
+            return 1;
+        }
+        
+        
+        // 振動検知：加速度ベクトルの大きさで判定
+        if(i > 10){ // 最初の数回は除外
+            float accel_magnitude = sqrt(
+                pow((Accel[0] * accel_scale_value / 32768.0), 2) +
+                pow((Accel[1] * accel_scale_value / 32768.0), 2) +
+                pow((Accel[2] * accel_scale_value / 32768.0), 2)
+            );
+            
+            // 振動が大きい場合は完全にリセット
+            if(fabs(accel_magnitude - 1.0f) > VIBRATION_THRESHOLD){
 
 
-	int16_t dummy[3] = {};
+            	//エラーカウントを進める
+            	error_count ++;
 
-	for(uint16_t i=0; i<1000; i++){
+            	//100回エラーを出したらあきらめる
+            	if(error_count > 100){
 
-		ICM42688P::GetRawData(dummy, dummy);
-	}
+            		return 2;
+            	}
 
-	for(int16_t i=0; i < Count; i++){
+                // 完全にリセット
+                i = 0;
+                for(uint8_t k=0; k<3; k++){
+                    accel_offset[k] = 0;
+                    gyro_offset[k] = 0;
+                }
+                accel_gain = 1.0f;
+                continue; // 最初からやり直し
+            }
+        }
+        if(ICM42688P::GetRawData(Accel, Gyro) == 1){
+        			return 1;
+        }
 
-		if(ICM42688P::GetRawData(Accel, Gyro) == 1){
-			return 1;
-		}
+        Accel[2] -= 32768 / accel_scale_value;
+        for(uint8_t j=0; j<3; j++){
+        	accel_offset[j] += (Accel[j] - accel_offset[j])/ (i+1);
+        	gyro_offset[j] += (Gyro[j] - gyro_offset[j])/ (i+1);
+        }
 
-		Accel[2] -= 32768 / accel_scale_value;
-		for(uint8_t j=0; j<3; j++){
-			accel_offset[j] += (Accel[j] - accel_offset[j])/ (i+1);
-			gyro_offset[j] += (Gyro[j] - gyro_offset[j])/ (i+1);
-		}
-		
-		ICM42688P::GetRawData(Accel, Gyro);
+       	ICM42688P::GetRawData(Accel, Gyro);
 
-		float norm = 1 / sqrt( pow(((Accel[0] - accel_offset[0])/ 32768.0 )* accel_scale_value , 2)
-							 + pow(((Accel[1] - accel_offset[1])/ 32768.0 )* accel_scale_value , 2)
-							 + pow(((Accel[2] - accel_offset[2])/ 32768.0 )* accel_scale_value , 2)
-							 );
-
-		accel_gain += (norm - accel_gain)/ (i+1);
-
-		float ac[3],gy[3];
-		ICM42688P::GetData(ac, gy);
-		printf("%+.4f %+.4f %+.4f ",ac[0],ac[1],ac[2]);
-		printf("%+.4f %+.4f %+.4f\n",gy[0],gy[1],gy[2]);
-	}
-	return 0;
+       	float norm = 1 / sqrt( pow(((Accel[0] - accel_offset[0])/ 32768.0 )* accel_scale_value , 2)
+       						 + pow(((Accel[1] - accel_offset[1])/ 32768.0 )* accel_scale_value , 2)
+       						 + pow(((Accel[2] - accel_offset[2])/ 32768.0 )* accel_scale_value , 2)
+       						 );
+     	accel_gain += (norm - accel_gain)/ (i+1);
+      	i++; // カウンタを進める
+    }
+    
+    return 0;
 }
