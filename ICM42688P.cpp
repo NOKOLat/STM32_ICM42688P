@@ -272,8 +272,7 @@ uint8_t ICM42688P::Calibration(uint16_t Count){
 
 		float ac[3],gy[3];
 		ICM42688P::GetData(ac, gy);
-		printf("%+.4f %+.4f %+.4f ",ac[0],ac[1],ac[2]);
-		printf("%+.4f %+.4f %+.4f\n",gy[0],gy[1],gy[2]);
 	}
 	return 0;
+
 }
