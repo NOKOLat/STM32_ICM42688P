@@ -5,8 +5,6 @@
  *      Author: Sezakiaoi
  */
 
-#ifdef USE_HAL_DRIVER
-
 #ifdef HAL_SPI_MODULE_ENABLED
 
 #include "ICM42688P_HAL_SPI.h"
@@ -59,5 +57,5 @@ void ICM42688P_HAL_SPI::Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint
 }
 
 #endif /* HAL_SPI_MODULE_ENABLED */
-#endif /* USE_HAL_DRIVER */
+
 

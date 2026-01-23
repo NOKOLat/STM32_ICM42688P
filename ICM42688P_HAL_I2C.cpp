@@ -7,9 +7,9 @@
 
 #ifdef USE_HAL_DRIVER
 
-#ifdef HAL_I2C_MODULE_ENABLED
-
 #include "ICM42688P_HAL_I2C.h"
+
+#ifdef HAL_I2C_MODULE_ENABLED
 
 ICM42688P_HAL_I2C::ICM42688P_HAL_I2C(I2C_HandleTypeDef* i2c_pin){
 
@@ -27,5 +27,4 @@ void ICM42688P_HAL_I2C::Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint
 }
 
 #endif /* HAL_I2C_MODULE_ENABLED */
-
 #endif /* USE_HAL_DRIVER */
