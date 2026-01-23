@@ -8,6 +8,10 @@
 #ifndef SRC_ICM42688P_HAL_I2C_H_
 #define SRC_ICM42688P_HAL_I2C_H_
 
+#ifdef USE_HAL_DRIVER
+
+#include "main.h"
+
 #ifdef HAL_I2C_MODULE_ENABLED
 
 #include "ICM42688P.h"
@@ -28,5 +32,6 @@ class ICM42688P_HAL_I2C: public ICM42688P {
         const uint8_t i2c_addr = 0b1101000 << 1;
 };
 
-#endif /* SRC_ICM42688P_HAL_I2C_H_ */
 #endif /* HAL_I2C_MODULE_ENABLED */
+#endif /* USE_HAL_DRIVER */
+#endif /* SRC_ICM42688P_HAL_I2C_H_ */

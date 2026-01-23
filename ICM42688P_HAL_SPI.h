@@ -31,5 +31,5 @@
 		 uint16_t cs_pin_num = 0x00;
  };
  
+ #endif /* HAL_SPI_MODULE_ENABLED */
  #endif /* INC_ICM42688P_HAL_SPI_H_ */
-#endif /* HAL_SPI_MODULE_ENABLED */
