@@ -21,7 +21,7 @@ class ICM42688P_HAL_I2C: public ICM42688P {
 
     public:
 
-        ICM42688P_HAL_I2C(I2C_HandleTypeDef* i2c_pin);
+        ICM42688P_HAL_I2C(I2C_HandleTypeDef* i2c_pin, uint8_t i2c_addr_7bit);
 
     private:
 
@@ -29,7 +29,8 @@ class ICM42688P_HAL_I2C: public ICM42688P {
         void Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint8_t len) override;
 
         I2C_HandleTypeDef* i2c_pin;
-        const uint8_t i2c_addr = 0b1101000 << 1;
+        uint8_t i2c_addr = 0b1101000 << 1;
+
 };
 
 #endif /* HAL_I2C_MODULE_ENABLED */

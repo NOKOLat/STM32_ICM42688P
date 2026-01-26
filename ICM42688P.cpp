@@ -167,7 +167,7 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
 /* @brief 加速度センサーとジャイロセンサーからデータを取得
  *
  * xyzの順番で配列に値がはいってきます
- * 200回実行に失敗する（2000ms程度）とReturn 1する
+ * 100回実行に失敗するとReturn 1する
  * ODRに対して実行が早い場合は同じ値を何度も取得することになります
  *
  * @param [out]int16_t Accel_Data[3] 加速度データを入れる配列
@@ -178,14 +178,16 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
  */
 uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
 
-    uint8_t raw_data[12] = {};
+    uint8_t raw_data[12];
     uint8_t error = 0;
-    while(raw_data[1] == 0 && raw_data[3] == 0 && raw_data[5] == 0){
+
+    while(raw_data[1] == 0){
 
         Read(ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12);
 
         error ++;
-        if(error > 200){
+        if(error > 100){
+
             return 1;
         }
     }
@@ -217,11 +219,12 @@ uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
     int16_t gyro_buffer[3] = {};
 
     if(GetRawData(accel_buffer, gyro_buffer) == 1){
+
         return 1;
     }
 
     for(uint8_t i = 0; i < 3; i++){
-        accel_data[i] = ( (accel_buffer[i] - accel_offset[i])/ 32768.0 )* accel_gain * g * accel_scale_value ;
+        accel_data[i] = ( (accel_buffer[i] - accel_offset[i])/ 32768.0 )* g * accel_scale_value ;
         gyro_data[i]  = ( (gyro_buffer[i] - gyro_offset[i])/ 32768.0 )* gyro_scale_value ;
     }
     return 0;
@@ -238,41 +241,39 @@ uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
  */
 uint8_t ICM42688P::Calibration(uint16_t Count){
 
-	int16_t Accel[3] = {};
-	int16_t Gyro[3] = {};
-
-
-	int16_t dummy[3] = {};
+	// データの空読み
+	int16_t dummy[3];
 
 	for(uint16_t i=0; i<1000; i++){
 
-		ICM42688P::GetRawData(dummy, dummy);
+		GetRawData(dummy, dummy);
 	}
 
-	for(int16_t i=0; i < Count; i++){
+	int32_t accel_tmp[3] = {};
+	int32_t gyro_tmp[3] = {};
 
-		if(ICM42688P::GetRawData(Accel, Gyro) == 1){
-			return 1;
-		}
+	int16_t accel_raw[3];
+	int16_t gyro_raw[3];
 
-		Accel[2] -= 32768 / accel_scale_value;
+	for(uint16_t i=0; i<Count; i++){
+
+		GetRawData(accel_raw, gyro_raw);
+
 		for(uint8_t j=0; j<3; j++){
-			accel_offset[j] += (Accel[j] - accel_offset[j])/ (i+1);
-			gyro_offset[j] += (Gyro[j] - gyro_offset[j])/ (i+1);
+
+			accel_tmp[j] = accel_tmp[j];
+			gyro_tmp[j] = gyro_tmp[j];
 		}
-		
-		ICM42688P::GetRawData(Accel, Gyro);
-
-		float norm = 1 / sqrt( pow(((Accel[0] - accel_offset[0])/ 32768.0 )* accel_scale_value , 2)
-							 + pow(((Accel[1] - accel_offset[1])/ 32768.0 )* accel_scale_value , 2)
-							 + pow(((Accel[2] - accel_offset[2])/ 32768.0 )* accel_scale_value , 2)
-							 );
-
-		accel_gain += (norm - accel_gain)/ (i+1);
-
-		float ac[3],gy[3];
-		ICM42688P::GetData(ac, gy);
 	}
+
+	for(uint8_t i=0; i<3; i++){
+
+		accel_offset[i] = (float)accel_tmp[i] / Count;
+		gyro_offset[i] = (float)gyro_tmp[i] / Count;
+	}
+
+	accel_offset[2] += g;
+
 	return 0;
 
 }
