@@ -120,6 +120,7 @@ class ICM42688P{
             ODR40 = 0x07,
         };
 
+        ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(char* msg));
         uint8_t Connection();
         uint8_t GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]);
         uint8_t GetData(float accel_buffer[3], float gyro_buffer[3]);
@@ -127,11 +128,13 @@ class ICM42688P{
         uint8_t GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SCALE gyro_scale, ICM42688P::GYRO_ODR gyro_odr, ICM42688P::GYRO_DLPF gyro_dlpf);
         uint8_t Calibration(uint16_t count);
 
-		protected:
-        virtual void Write(ICM42688P::BANK0 reg_addr, uint8_t* tx_buffer, uint8_t len) = 0;
-        virtual void Read(ICM42688P::BANK0 reg_addr, uint8_t* rx_buffer, uint8_t len) = 0;
+	private:
 
-		private:
+        // function
+        uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len);
+        uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len);
+        void (*log)(char* msg);
+
         // Offset
         int16_t accel_offset[3] = {};
         int16_t gyro_offset[3] = {};

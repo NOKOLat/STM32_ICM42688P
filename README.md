@@ -2,42 +2,38 @@
 
 STM32のHALライブラリを用いてICM42688Pの6軸センサーデータを取得するためのコードです
 
-## SampleCode
-
-通信プロトコルごとクラスが分かれていて、コンストラクタを以下のように宣言することで通信方法を切り替えられます
-
-**STM32_HAL_I2C**
-- I2Cのハンドルと7bitのアドレスを指定します
-```cpp
-#include "ICM42688P_HAL_I2C.h"
-ICM42688P_HAL_I2C icm(&hi2c1, 0b1101001);
-```
-
-**STM32_HAL_SPI**
-- SPIのハンドルとCSピンのポートとピン番号を指定します
-```cpp
-#include "ICM42688P_HAL_SPI.h"
-ICM42688P_HAL_SPI icm(&hspi1, GPIOA, GPIO_PIN_4);
-```
-
-**Wire_I2C**
-- SDAとSCLのピン番号と7bitのアドレスを指定します
-```cpp
-#include "ICM42688P_Wire_I2C.h"
-ICM42688P_Wire_I2C icm(21, 22, 0b1101001);
-```
-
 ### サンプルコード
 
-- 上記のコンストラクタ宣言部分を変更する以外は同じコードで動作します
-- 以下はSTM32_HAL_I2Cを用いたサンプルコードです
+ICM42688Pの6軸センサーを使用するには、通信関数とログ関数をコンストラクタに渡します。
+
+以下はSTM32 HAL I2Cを用いたサンプルコードです：
+
 ```cpp
 #include "wrapper.hpp"
 #include "stdio.h"
+#include "i2c.h"
+#include "ICM42688P.h"
 
-// 使用したい通信プロトコルのヘッダーファイルをインクルード
-#include "ICM42688P_HAL_I2C.h"
-ICM42688P_HAL_I2C icm(&hi2c1, 0b1101001);
+// I2C通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+
+	return HAL_I2C_Mem_Write(&hi2c1, 0x68 << 1, (uint16_t)reg_addr, I2C_MEMADD_SIZE_8BIT, tx_buffer, len, 100);
+}
+
+// I2C通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+
+	return HAL_I2C_Mem_Read(&hi2c1, 0x68 << 1, (uint16_t)reg_addr, I2C_MEMADD_SIZE_8BIT, rx_buffer, len, 100);
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	
+	printf("%s", msg);
+}
+
+// ICM42688Pオブジェクト生成（通信関数とログ関数をコンストラクタに渡す）
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
 
 // データ格納用変数
 float accel_data[3] = {};
@@ -60,9 +56,7 @@ void init(){
 	HAL_Delay(1000);
 
 	// 静止キャリブレーション
-	printf("Start Calibration\n");
 	icm.Calibration(100);
-	printf("End Calibration\n");
 }
 
 void loop(){

@@ -8,6 +8,19 @@
 //#include "stdio.h"
 #include "ICM42688P.h"
 
+/* @brief コンストラクタ
+ *
+ * @param [in]Write レジスタに値を書き込む関数
+ * @param [in]Read  レジスタから値を読み取る関数
+ * @param [in]log   ログを出力する関数
+ */
+ICM42688P::ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(char* msg)){
+
+    this->Write = Write;
+    this->Read = Read;
+    this->log = log;
+}
+
 /* @brief センサーとの接続を確認
  *
  * ICM42688PのWHO_AM_Iレジスタとの通信を用いて、接続を確認します
@@ -22,13 +35,18 @@ uint8_t ICM42688P::Connection(){
 
     while(product_id != 0x47){
 
-        Read(ICM42688P::BANK0::WHO_AM_I, &product_id, 1);
+        Read((uint8_t)ICM42688P::BANK0::WHO_AM_I, &product_id, 1);
         error ++;
 
         if(error > 100){
+
+            log("[ICM42688P] Not Found\n");
             return 1;//接続失敗
         }
     }
+
+    log("[ICM42688P] Connection Successful\n");
+    
     return 0;//接続成功
 }
 
@@ -52,11 +70,13 @@ uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCE
     uint8_t now_mode = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::PWR_MGMT0, &command, 1);
-        Read(ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::PWR_MGMT0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] AccelConfig: PWR_MGMT0 Setting Failed\n");
             return 1;
         }
     }
@@ -67,11 +87,13 @@ uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCE
     now_mode = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::ACCEL_CONFIG0, &command, 1);
-        Read(ICM42688P::BANK0::ACCEL_CONFIG0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::ACCEL_CONFIG0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::ACCEL_CONFIG0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] AccelConfig: ACCEL_CONFIG0 Setting Failed\n");
             return 2;
         }
     }
@@ -84,11 +106,13 @@ uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCE
     now_mode = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
-        Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] AccelConfig: GYRO_ACCEL_CONFIG0 Setting Failed\n");
             return 3;
         }
     }
@@ -118,11 +142,13 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
     uint8_t now_mode = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::PWR_MGMT0, &command, 1);
-        Read(ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::PWR_MGMT0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::PWR_MGMT0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] GyroConfig: PWR_MGMT0 Setting Failed\n");
             return 1;
         }
     }
@@ -133,11 +159,13 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
     error = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::GYRO_CONFIG0, &command, 1);
-        Read(ICM42688P::BANK0::GYRO_CONFIG0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::GYRO_CONFIG0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::GYRO_CONFIG0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] GyroConfig: GYRO_CONFIG0 Setting Failed\n");
             return 2;
         }
     }
@@ -150,11 +178,13 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
     now_mode = 0;
     while(command != now_mode){
 
-        Write(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
-        Read(ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
+        Write((uint8_t)ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &command, 1);
+        Read((uint8_t)ICM42688P::BANK0::GYRO_ACCEL_CONFIG0, &now_mode, 1);
 
         error ++;
         if(error > 100){
+
+            log("[ICM42688P] GyroConfig: GYRO_ACCEL_CONFIG0 Setting Failed\n");
             return 3;
         }
     }
@@ -174,13 +204,12 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
  * @param [out]int16_t Gyro_Data[3]  角速度データを入れる配列
  *
  * @return uint8_t 成功: 0、失敗: 1
-
  */
 uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
 
     uint8_t raw_data[12];
 
-    Read(ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12);
+    Read((uint8_t)ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12);
 
     accel_buffer[0]  = (int16_t)(raw_data[1] | (raw_data[0] << 8)) - accel_offset[0];
     accel_buffer[1]  = (int16_t)(raw_data[3] | (raw_data[2] << 8)) - accel_offset[1];
