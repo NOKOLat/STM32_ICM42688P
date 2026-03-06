@@ -70,6 +70,129 @@ void loop(){
 }
 ```
 
+## ほかの通信方法での例
+
+### STM32 HAL SPI
+
+外部から定義が必要：
+```cpp
+#define ICM42688P_SPI_TIMEOUT 10  // milliseconds
+#define ICM42688P_CS_PORT  GPIOA
+#define ICM42688P_CS_PIN   GPIO_PIN_4
+```
+
+実装：
+```cpp
+// SPI通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	uint8_t tx_tmp[2] = {0};
+
+	for(uint8_t i = 0; i < len; i++){
+		tx_tmp[0] = (reg_addr + i) & 0x7F;  // Write bit (MSB = 0)
+		tx_tmp[1] = tx_buffer[i];
+
+		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_RESET);
+		HAL_SPI_Transmit(&hspi1, tx_tmp, 2, ICM42688P_SPI_TIMEOUT);
+		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_SET);
+	}
+	return 0;
+}
+
+// SPI通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	uint8_t tx_tmp[2] = {0};
+	uint8_t rx_tmp[2] = {0};
+
+	for(uint8_t i = 0; i < len; i++){
+		tx_tmp[0] = (reg_addr + i) | 0x80;  // Read bit (MSB = 1)
+		tx_tmp[1] = 0x00;
+
+		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_RESET);
+		HAL_SPI_TransmitReceive(&hspi1, tx_tmp, rx_tmp, 2, ICM42688P_SPI_TIMEOUT);
+		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_SET);
+
+		rx_buffer[i] = rx_tmp[1];
+	}
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	printf("%s", msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
+```
+
+### Arduino Wire (I2C)
+```cpp
+#include <Wire.h>
+
+// I2C通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	Wire.beginTransmission(0x68);  // ICM42688P I2C address
+	Wire.write(reg_addr);
+	Wire.write(tx_buffer, len);
+	return Wire.endTransmission();
+}
+
+// I2C通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	Wire.beginTransmission(0x68);
+	Wire.write(reg_addr);
+	Wire.endTransmission(false);
+	Wire.requestFrom(0x68, len);
+	for(uint8_t i = 0; i < len && Wire.available(); i++){
+		rx_buffer[i] = Wire.read();
+	}
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	Serial.print(msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
+```
+
+### Arduino SPI
+```cpp
+#include <SPI.h>
+
+#define CS_PIN 10  // Chip Select pin
+
+// SPI通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	digitalWrite(CS_PIN, LOW);
+	SPI.transfer(reg_addr & 0x7F);  // Write bit (MSB = 0)
+	SPI.transfer(tx_buffer, len);
+	digitalWrite(CS_PIN, HIGH);
+	return 0;
+}
+
+// SPI通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	digitalWrite(CS_PIN, LOW);
+	SPI.transfer(reg_addr | 0x80);  // Read bit (MSB = 1)
+	for(uint8_t i = 0; i < len; i++){
+		rx_buffer[i] = SPI.transfer(0x00);
+	}
+	digitalWrite(CS_PIN, HIGH);
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	Serial.print(msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
+```
+
 ## 設定項目について
 
 - 加速度センサーとジャイロセンサーの設定はそれぞれ以下の関数で行います
