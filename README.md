@@ -74,45 +74,33 @@ void loop(){
 
 ### STM32 HAL SPI
 
-外部から定義が必要：
 ```cpp
-#define ICM42688P_SPI_TIMEOUT 10  // milliseconds
-#define ICM42688P_CS_PORT  GPIOA
-#define ICM42688P_CS_PIN   GPIO_PIN_4
-```
-
-実装：
-```cpp
-// SPI通信の書き込み関数
+// SPI通信の書き込み関数（バースト対応）
 static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
-	uint8_t tx_tmp[2] = {0};
+	uint8_t tx_data[32];  // 最大書き込みサイズ
+	if(len > 31) return HAL_ERROR;
 
-	for(uint8_t i = 0; i < len; i++){
-		tx_tmp[0] = (reg_addr + i) & 0x7F;  // Write bit (MSB = 0)
-		tx_tmp[1] = tx_buffer[i];
+	tx_data[0] = reg_addr & 0x7F;  // Write bit (MSB = 0)
+	memcpy(&tx_data[1], tx_buffer, len);
 
-		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_RESET);
-		HAL_SPI_Transmit(&hspi1, tx_tmp, 2, ICM42688P_SPI_TIMEOUT);
-		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_SET);
-	}
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);  // CS LOW
+	HAL_SPI_Transmit(&hspi1, tx_data, len + 1, 10);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);    // CS HIGH
+
 	return 0;
 }
 
-// SPI通信の読み込み関数
+// SPI通信の読み込み関数（バースト対応）
 static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
-	uint8_t tx_tmp[2] = {0};
-	uint8_t rx_tmp[2] = {0};
+	if(len > 32) return HAL_ERROR;
 
-	for(uint8_t i = 0; i < len; i++){
-		tx_tmp[0] = (reg_addr + i) | 0x80;  // Read bit (MSB = 1)
-		tx_tmp[1] = 0x00;
+	uint8_t tx_addr = reg_addr | 0x80;  // Read bit (MSB = 1)
 
-		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_RESET);
-		HAL_SPI_TransmitReceive(&hspi1, tx_tmp, rx_tmp, 2, ICM42688P_SPI_TIMEOUT);
-		HAL_GPIO_WritePin(ICM42688P_CS_PORT, ICM42688P_CS_PIN, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);  // CS LOW
+	HAL_SPI_Transmit(&hspi1, &tx_addr, 1, 10);
+	HAL_SPI_Receive(&hspi1, rx_buffer, len, 10);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);    // CS HIGH
 
-		rx_buffer[i] = rx_tmp[1];
-	}
 	return 0;
 }
 
