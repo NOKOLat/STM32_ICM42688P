@@ -2,42 +2,38 @@
 
 STM32のHALライブラリを用いてICM42688Pの6軸センサーデータを取得するためのコードです
 
-## SampleCode
-
-通信プロトコルごとクラスが分かれていて、コンストラクタを以下のように宣言することで通信方法を切り替えられます
-
-**STM32_HAL_I2C**
-- I2Cのハンドルと7bitのアドレスを指定します
-```cpp
-#include "ICM42688P_HAL_I2C.h"
-ICM42688P_HAL_I2C icm(&hi2c1, 0b1101001);
-```
-
-**STM32_HAL_SPI**
-- SPIのハンドルとCSピンのポートとピン番号を指定します
-```cpp
-#include "ICM42688P_HAL_SPI.h"
-ICM42688P_HAL_SPI icm(&hspi1, GPIOA, GPIO_PIN_4);
-```
-
-**Wire_I2C**
-- SDAとSCLのピン番号と7bitのアドレスを指定します
-```cpp
-#include "ICM42688P_Wire_I2C.h"
-ICM42688P_Wire_I2C icm(21, 22, 0b1101001);
-```
-
 ### サンプルコード
 
-- 上記のコンストラクタ宣言部分を変更する以外は同じコードで動作します
-- 以下はSTM32_HAL_I2Cを用いたサンプルコードです
+ICM42688Pの6軸センサーを使用するには、通信関数とログ関数をコンストラクタに渡します。
+
+以下はSTM32 HAL I2Cを用いたサンプルコードです：
+
 ```cpp
 #include "wrapper.hpp"
 #include "stdio.h"
+#include "i2c.h"
+#include "ICM42688P.h"
 
-// 使用したい通信プロトコルのヘッダーファイルをインクルード
-#include "ICM42688P_HAL_I2C.h"
-ICM42688P_HAL_I2C icm(&hi2c1, 0b1101001);
+// I2C通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+
+	return HAL_I2C_Mem_Write(&hi2c1, 0x68 << 1, (uint16_t)reg_addr, I2C_MEMADD_SIZE_8BIT, tx_buffer, len, 100);
+}
+
+// I2C通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+
+	return HAL_I2C_Mem_Read(&hi2c1, 0x68 << 1, (uint16_t)reg_addr, I2C_MEMADD_SIZE_8BIT, rx_buffer, len, 100);
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	
+	printf("%s", msg);
+}
+
+// ICM42688Pオブジェクト生成（通信関数とログ関数をコンストラクタに渡す）
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
 
 // データ格納用変数
 float accel_data[3] = {};
@@ -60,9 +56,7 @@ void init(){
 	HAL_Delay(1000);
 
 	// 静止キャリブレーション
-	printf("Start Calibration\n");
 	icm.Calibration(100);
-	printf("End Calibration\n");
 }
 
 void loop(){
@@ -74,6 +68,117 @@ void loop(){
 
 	HAL_Delay(50);
 }
+```
+
+## ほかの通信方法での例
+
+### STM32 HAL SPI
+
+```cpp
+// SPI通信の書き込み関数（バースト対応）
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	uint8_t tx_data[32];  // 最大書き込みサイズ
+	if(len > 31) return HAL_ERROR;
+
+	tx_data[0] = reg_addr & 0x7F;  // Write bit (MSB = 0)
+	memcpy(&tx_data[1], tx_buffer, len);
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);  // CS LOW
+	HAL_SPI_Transmit(&hspi1, tx_data, len + 1, 10);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);    // CS HIGH
+
+	return 0;
+}
+
+// SPI通信の読み込み関数（バースト対応）
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	if(len > 32) return HAL_ERROR;
+
+	uint8_t tx_addr = reg_addr | 0x80;  // Read bit (MSB = 1)
+
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);  // CS LOW
+	HAL_SPI_Transmit(&hspi1, &tx_addr, 1, 10);
+	HAL_SPI_Receive(&hspi1, rx_buffer, len, 10);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);    // CS HIGH
+
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	printf("%s", msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
+```
+
+### Arduino Wire (I2C)
+```cpp
+#include <Wire.h>
+
+// I2C通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	Wire.beginTransmission(0x68);  // ICM42688P I2C address
+	Wire.write(reg_addr);
+	Wire.write(tx_buffer, len);
+	return Wire.endTransmission();
+}
+
+// I2C通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	Wire.beginTransmission(0x68);
+	Wire.write(reg_addr);
+	Wire.endTransmission(false);
+	Wire.requestFrom(0x68, len);
+	for(uint8_t i = 0; i < len && Wire.available(); i++){
+		rx_buffer[i] = Wire.read();
+	}
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	Serial.print(msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
+```
+
+### Arduino SPI
+```cpp
+#include <SPI.h>
+
+#define CS_PIN 10  // Chip Select pin
+
+// SPI通信の書き込み関数
+static uint8_t icm42688p_write(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len){
+	digitalWrite(CS_PIN, LOW);
+	SPI.transfer(reg_addr & 0x7F);  // Write bit (MSB = 0)
+	SPI.transfer(tx_buffer, len);
+	digitalWrite(CS_PIN, HIGH);
+	return 0;
+}
+
+// SPI通信の読み込み関数
+static uint8_t icm42688p_read(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len){
+	digitalWrite(CS_PIN, LOW);
+	SPI.transfer(reg_addr | 0x80);  // Read bit (MSB = 1)
+	for(uint8_t i = 0; i < len; i++){
+		rx_buffer[i] = SPI.transfer(0x00);
+	}
+	digitalWrite(CS_PIN, HIGH);
+	return 0;
+}
+
+// ログ出力関数
+static void icm42688p_log(char* msg){
+	Serial.print(msg);
+}
+
+// ICM42688Pオブジェクト生成
+ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
 ```
 
 ## 設定項目について
