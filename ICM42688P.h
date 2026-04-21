@@ -120,7 +120,7 @@ class ICM42688P{
             ODR40 = 0x07,
         };
 
-        ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(char* msg));
+        ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(const char* msg));
         uint8_t Connection();
         uint8_t GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]);
         uint8_t GetData(float accel_buffer[3], float gyro_buffer[3]);
@@ -133,7 +133,7 @@ class ICM42688P{
         // function
         uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len);
         uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len);
-        void (*log)(char* msg);
+        void (*log)(const char* msg);
 
         // Offset
         int16_t accel_offset[3] = {};

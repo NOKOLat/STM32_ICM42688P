@@ -14,7 +14,7 @@
  * @param [in]Read  レジスタから値を読み取る関数
  * @param [in]log   ログを出力する関数
  */
-ICM42688P::ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(char* msg)){
+ICM42688P::ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(const char* msg)){
 
     this->Write = Write;
     this->Read = Read;
