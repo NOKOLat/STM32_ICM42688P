@@ -19,6 +19,7 @@ class ICM42688P{
         enum class BANK0: uint8_t{
 
             ACCEL_DATA_X1 = 0x1F,
+            INT_STATUS = 0x2D,
             PWR_MGMT0 = 0x4E,
             GYRO_CONFIG0 = 0x4F,
             ACCEL_CONFIG0 = 0x50,
@@ -122,13 +123,16 @@ class ICM42688P{
 
         ICM42688P(uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len), uint8_t (*Read)(uint8_t reg_addr, uint8_t* rx_buffer, uint8_t len), void (*log)(const char* msg));
         uint8_t Connection();
+        uint8_t CheckDataReady(bool& is_ready);
         uint8_t GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]);
         uint8_t GetData(float accel_buffer[3], float gyro_buffer[3]);
         uint8_t AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCEL_SCALE accel_scale, ICM42688P::ACCEL_ODR accel_odr, ICM42688P::ACCEL_DLPF accel_dlpf);
         uint8_t GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SCALE gyro_scale, ICM42688P::GYRO_ODR gyro_odr, ICM42688P::GYRO_DLPF gyro_dlpf);
-        uint8_t Calibration(uint16_t count);
+        uint8_t StartCalibration(uint16_t required_count);
+        uint8_t AddCalibrationData(const int16_t accel_raw[3], const int16_t gyro_raw[3]);
+        bool IsCalibrationComplete() const;
 
-	private:
+    private:
 
         // function
         uint8_t (*Write)(uint8_t reg_addr, uint8_t* tx_buffer, uint8_t len);
@@ -140,6 +144,13 @@ class ICM42688P{
         int16_t gyro_offset[3] = {};
         float accel_gain = 0.0;
 
+        // Calibration
+        int32_t calibration_accel_sum[3] = {};
+        int32_t calibration_gyro_sum[3] = {};
+        uint16_t calibration_sample_count = 0;
+        uint16_t calibration_required_count = 0;
+        bool calibration_complete = false;
+
         // Config
         float accel_scale_value = 1.0/ 16384;
         float gyro_scale_value  = 250.0/ 32768;
@@ -149,8 +160,6 @@ class ICM42688P{
         uint8_t gyro_dlpf_tmp = 0;
         float accel_norm = 0.0;
 
-        // Calc
-        float g = 9.80665;
 };
 
 #endif /* SRC_ICM42688P_H_ */

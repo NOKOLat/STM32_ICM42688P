@@ -1,6 +1,7 @@
 # STM32 ICM42688P
 
-STM32のHALライブラリを用いてICM42688Pの6軸センサーデータを取得するためのコードです
+通信関数を外部から渡して、ICM42688Pの6軸センサーデータを取得するためのコードです。
+ライブラリ本体はSTM32 HALに依存しません。
 
 ### サンプルコード
 
@@ -38,6 +39,8 @@ ICM42688P icm(icm42688p_write, icm42688p_read, icm42688p_log);
 // データ格納用変数
 float accel_data[3] = {};
 float gyro_data[3] = {};
+int16_t accel_raw[3] = {};
+int16_t gyro_raw[3] = {};
 
 void init(){
 
@@ -53,13 +56,22 @@ void init(){
 	icm.AccelConfig(icm.ACCEL_Mode::LowNoize, icm.ACCEL_SCALE::SCALE02g, icm.ACCEL_ODR::ODR01000hz, icm.ACCEL_DLPF::ODR40);
 	icm.GyroConfig(icm.GYRO_MODE::LowNoize, icm.GYRO_SCALE::Dps0250, icm.GYRO_ODR::ODR01000hz, icm.GYRO_DLPF::ODR40);
 
-	HAL_Delay(1000);
-
-	// 静止キャリブレーション
-	icm.Calibration(100);
+	// 静止キャリブレーションを開始
+	icm.StartCalibration(100);
 }
 
 void loop(){
+	// 1ループにつき1サンプルをキャリブレーションへ投入
+	if(!icm.IsCalibrationComplete()){
+		bool is_data_ready = false;
+		if(icm.CheckDataReady(is_data_ready) != 0 || !is_data_ready){
+			return;
+		}
+		if(icm.GetRawData(accel_raw, gyro_raw) == 0){
+			icm.AddCalibrationData(accel_raw, gyro_raw);
+		}
+		return;
+	}
 
 	icm.GetData(accel_data, gyro_data);
 

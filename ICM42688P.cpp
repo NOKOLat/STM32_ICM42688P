@@ -8,6 +8,13 @@
 //#include "stdio.h"
 #include "ICM42688P.h"
 
+namespace{
+
+constexpr float STANDARD_GRAVITY = 9.80665f;
+constexpr uint8_t DATA_READY_MASK = 0x08;
+
+}
+
 /* @brief コンストラクタ
  *
  * @param [in]Write レジスタに値を書き込む関数
@@ -117,7 +124,7 @@ uint8_t ICM42688P::AccelConfig(ICM42688P::ACCEL_Mode accel_mode, ICM42688P::ACCE
         }
     }
 
-    accel_scale_value = (16.0 / pow(2,(uint8_t)accel_scale) ) / 32768 * 9.8;
+    accel_scale_value = (16.0 / pow(2, (uint8_t)accel_scale)) / 32768 * STANDARD_GRAVITY;
 
     return 0;
 }
@@ -194,11 +201,32 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
     return 0;
 }
 
+/* @brief 新しいセンサーデータの有無を確認
+ *
+ * INT_STATUSのDATA_RDY_INTを読み取ります
+ *
+ * @param [out]is_ready 新しいデータがある場合はtrue
+ *
+ * @return uint8_t 成功: 0、失敗: 1
+ */
+uint8_t ICM42688P::CheckDataReady(bool& is_ready){
+
+    uint8_t int_status = 0;
+    if(Read((uint8_t)ICM42688P::BANK0::INT_STATUS, &int_status, 1) != 0){
+
+        is_ready = false;
+        return 1;
+    }
+
+    is_ready = (int_status & DATA_READY_MASK) != 0;
+
+    return 0;
+}
+
 /* @brief 加速度センサーとジャイロセンサーからデータを取得
  *
  * xyzの順番で配列に値がはいってきます
- * 100回実行に失敗するとReturn 1する
- * ODRに対して実行が早い場合は同じ値を何度も取得することになります
+ * センサ読み取りに失敗するとReturn 1する
  *
  * @param [out]int16_t Accel_Data[3] 加速度データを入れる配列
  * @param [out]int16_t Gyro_Data[3]  角速度データを入れる配列
@@ -207,9 +235,16 @@ uint8_t ICM42688P::GyroConfig(ICM42688P::GYRO_MODE gyro_mode, ICM42688P::GYRO_SC
  */
 uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
 
-    uint8_t raw_data[12];
+    if(!accel_buffer || !gyro_buffer){
 
-    Read((uint8_t)ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12);
+        return 1;
+    }
+
+    uint8_t raw_data[12] = {};
+    if(Read((uint8_t)ICM42688P::BANK0::ACCEL_DATA_X1, raw_data, 12) != 0){
+
+        return 1;
+    }
 
     accel_buffer[0]  = (int16_t)(raw_data[1] | (raw_data[0] << 8)) - accel_offset[0];
     accel_buffer[1]  = (int16_t)(raw_data[3] | (raw_data[2] << 8)) - accel_offset[1];
@@ -234,10 +269,18 @@ uint8_t ICM42688P::GetRawData(int16_t accel_buffer[3], int16_t gyro_buffer[3]){
  */
 uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
 
+    if(!accel_data || !gyro_data){
+
+        return 1;
+    }
+
     int16_t accel_buffer[3] = {};
     int16_t gyro_buffer[3] = {};
 
-    GetRawData(accel_buffer, gyro_buffer);
+    if(GetRawData(accel_buffer, gyro_buffer) != 0){
+
+        return 1;
+    }
 
     for(uint8_t i = 0; i < 3; i++){
 
@@ -248,42 +291,80 @@ uint8_t ICM42688P::GetData(float accel_data[3], float gyro_data[3]){
     return 0;
 }
 
-/* @brief キャリブレーション
+/* @brief キャリブレーションを開始
  *
- * GetRawData関数を使用して、指定回数値を取得し
- * その値をオフセットとして登録します
- *
- * @param  [in]Count キャリブレーションのデータ取得回数
+ * @param [in]required_count キャリブレーションに必要なデータ数
  *
  * @return uint8_t 成功: 0、失敗: 1
  */
-uint8_t ICM42688P::Calibration(uint16_t Count){
+uint8_t ICM42688P::StartCalibration(uint16_t required_count){
 
-	int32_t accel_tmp[3] = {};
-	int32_t gyro_tmp[3] = {};
+    if(required_count == 0 || !(accel_scale_value > 0.0f)){
 
-	int16_t accel_raw[3];
-	int16_t gyro_raw[3];
+        return 1;
+    }
 
-	for(uint16_t i=0; i<Count; i++){
+    calibration_sample_count = 0;
+    calibration_required_count = required_count;
+    calibration_complete = false;
 
-		GetRawData(accel_raw, gyro_raw);
+    for(uint8_t i = 0; i < 3; i++){
 
-		for(uint8_t j=0; j<3; j++){
+        accel_offset[i] = 0;
+        gyro_offset[i] = 0;
+        calibration_accel_sum[i] = 0;
+        calibration_gyro_sum[i] = 0;
+    }
 
-			accel_tmp[j] += accel_raw[j];
-			gyro_tmp[j] += gyro_raw[j];
-		}
-	}
+    return 0;
+}
 
-	for(uint8_t i=0; i<3; i++){
+/* @brief キャリブレーション用のデータを追加
+ *
+ * 必要数のデータが集まると、平均値からオフセットを計算します
+ *
+ * @param [in]accel_raw 加速度センサーの生データ
+ * @param [in]gyro_raw  ジャイロセンサーの生データ
+ *
+ * @return uint8_t 成功: 0、失敗: 1
+ */
+uint8_t ICM42688P::AddCalibrationData(const int16_t accel_raw[3], const int16_t gyro_raw[3]){
 
-		accel_offset[i] = accel_tmp[i] / Count;
-		gyro_offset[i] = gyro_tmp[i] / Count;
-	}
+    if(!accel_raw || !gyro_raw || calibration_required_count == 0 || calibration_complete){
 
-	accel_offset[2] -= 32768 / accel_scale_value * 32768 * 9.8;
+        return 1;
+    }
 
-	return 0;
+    for(uint8_t i = 0; i < 3; i++){
 
+        calibration_accel_sum[i] += accel_raw[i];
+        calibration_gyro_sum[i] += gyro_raw[i];
+    }
+
+    calibration_sample_count ++;
+    if(calibration_sample_count < calibration_required_count){
+
+        return 0;
+    }
+
+    for(uint8_t i = 0; i < 3; i++){
+
+        accel_offset[i] = calibration_accel_sum[i] / calibration_required_count;
+        gyro_offset[i] = calibration_gyro_sum[i] / calibration_required_count;
+    }
+
+    int16_t gravity_count = (int16_t)(STANDARD_GRAVITY / accel_scale_value);
+    accel_offset[2] -= gravity_count;
+    calibration_complete = true;
+
+    return 0;
+}
+
+/* @brief キャリブレーション完了状態を取得
+ *
+ * @return bool 必要数のデータが集まった場合はtrue
+ */
+bool ICM42688P::IsCalibrationComplete() const{
+
+    return calibration_complete;
 }
